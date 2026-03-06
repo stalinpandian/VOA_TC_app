@@ -462,48 +462,40 @@ function doLogout(){
 async function loadData(){
   document.getElementById('myList').innerHTML='<div class="loading-b">⏳ Loading your accounts...</div>';
   try{
-    // Load accounts assigned to this TC
-    const r = await fetch(GS_URL+'?type=appointments&tc='+encodeURIComponent(USER.toUpperCase()));
-    const d = await r.json();
-    if(d.status==='success'&&d.accounts){
-      myAccounts = d.accounts;
+    // All 3 fetches in parallel!
+    const [r1, r2, r3] = await Promise.all([
+      fetch(GS_URL+'?type=appointments&tc='+encodeURIComponent(USER.toUpperCase())),
+      fetch(GS_URL+'?type=pending&exec=ALL'),
+      fetch(GS_URL+'?type=appointments&exec=ALL')
+    ]);
+
+    const [d1, d2, d3] = await Promise.all([r1.json(), r2.json(), r3.json()]);
+
+    // My accounts
+    if(d1.status==='success' && d1.accounts){
+      myAccounts = d1.accounts;
       localStorage.setItem('voa_tc_accounts_'+USER, JSON.stringify(myAccounts));
     } else {
       const cached = localStorage.getItem('voa_tc_accounts_'+USER);
-      if(cached){ myAccounts=JSON.parse(cached); showToast('Offline — cached data'); }
-      else myAccounts=[];
+      myAccounts = cached ? JSON.parse(cached) : [];
+      if(cached) showToast('Offline — cached data');
     }
 
-    // Load pending from all execs
-    const allPend=[];
-    for(const exec of EXECUTIVES){
-      try{
-        const rp=await fetch(GS_URL+'?type=pending&exec='+encodeURIComponent(exec.toUpperCase()));
-        const dp=await rp.json();
-        if(dp.status==='success'&&dp.pending) dp.pending.forEach(a=>allPend.push({...a,execName:exec}));
-      }catch(e){}
-    }
-    pendingAccounts=allPend;
+    // Pending (all execs)
+    pendingAccounts = (d2.status==='success' && d2.pending) ? d2.pending : [];
 
-    // Load all accounts for all team tab
-    const allAcc=[];
-    for(const exec of EXECUTIVES){
-      try{
-        const ra=await fetch(GS_URL+'?type=appointments&exec='+encodeURIComponent(exec.toUpperCase()));
-        const da=await ra.json();
-        if(da.status==='success'&&da.accounts) da.accounts.forEach(a=>allAcc.push({...a,execName:exec}));
-      }catch(e){}
-    }
-    allAccounts=allAcc;
+    // All accounts
+    allAccounts = (d3.status==='success' && d3.accounts) ? d3.accounts : [];
 
     updateStats();
     renderMy();
     buildPendFilter();
     buildAllFilter();
+
   }catch(err){
     const cached=localStorage.getItem('voa_tc_accounts_'+USER);
     if(cached){ myAccounts=JSON.parse(cached); updateStats(); renderMy(); showToast('Offline — cached','red'); }
-    else document.getElementById('myList').innerHTML='<div class="loading-b">❌ Could not load</div>';
+    else document.getElementById('myList').innerHTML='<div class="loading-b">❌ Could not load — check connection</div>';
   }
 }
 
