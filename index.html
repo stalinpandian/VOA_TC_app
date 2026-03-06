@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="VOA TC">
+<meta name="theme-color" content="#1565C0">
+<title>VOA Telecaller</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
+:root{
+  --blue:#1565C0;--db:#0D47A1;--lb:#E3F2FD;--blb:#BBDEFB;
+  --red:#D32F2F;--green:#2E7D32;--orange:#E65100;--purple:#6A1B9A;
+  --bg:#F0F4F8;--white:#fff;--bdr:#DDE3ED;--surf:#F5F7FA;
+  --text:#0F1923;--muted:#7A8899;
+  --r:13px;--F:'DM Sans',sans-serif;--M:'JetBrains Mono',monospace
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--F);background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
+.page{display:none}.page.active{display:block}
+.app{max-width:460px;margin:0 auto;padding-bottom:30px}
+
+/* ══ PICKER ══ */
+.picker{position:fixed;inset:0;z-index:300;background:#fff;
+  display:flex;flex-direction:column;align-items:center;padding:0 20px 40px;overflow-y:auto}
+.pk-top{width:100%;max-width:400px;text-align:center;padding:40px 0 28px}
+.pk-logo{width:72px;height:72px;border-radius:20px;margin:0 auto 16px;
+  background:linear-gradient(135deg,var(--blue),var(--db));
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:13px;color:#fff;letter-spacing:.5px;text-align:center;line-height:1.3;
+  box-shadow:0 8px 24px rgba(21,101,192,.35)}
+.pk-title{font-size:26px;font-weight:800;margin-bottom:6px}
+.pk-sub{font-size:13px;color:var(--muted);line-height:1.6}
+.pk-lbl{width:100%;max-width:400px;font-size:10px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:1.5px;font-weight:700;
+  margin:16px 0 10px;display:flex;align-items:center;gap:8px}
+.pk-lbl::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.name-grid{width:100%;max-width:400px;display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.nb{background:#fff;border:1.5px solid var(--bdr);border-radius:12px;padding:14px 10px;
+  display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:all .15s;
+  box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.nb:active{transform:scale(.96)}.nb:hover{border-color:var(--blue);background:rgba(21,101,192,.03)}
+.nb-av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(21,101,192,.1);color:var(--blue)}
+.nb-name{font-size:13px;font-weight:700}.nb-role{font-size:10px;color:var(--muted)}
+
+/* ══ PIN ══ */
+.pin-screen{position:fixed;inset:0;z-index:400;background:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px}
+.pin-avatar{width:72px;height:72px;border-radius:50%;margin:0 auto 12px;
+  display:flex;align-items:center;justify-content:center;font-size:28px;
+  background:rgba(21,101,192,.1)}
+.pin-name{font-size:22px;font-weight:800;text-align:center;margin-bottom:4px}
+.pin-label{font-size:13px;color:var(--muted);text-align:center;margin-bottom:28px}
+.pin-dots{display:flex;gap:14px;justify-content:center;margin-bottom:28px}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--bdr);background:#fff;transition:all .15s}
+.pin-dot.filled{background:var(--blue);border-color:var(--blue)}
+.pin-dot.shake{animation:shake .3s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:280px;width:100%}
+.pin-key{height:62px;border-radius:12px;background:var(--surf);border:1.5px solid var(--bdr);
+  font-size:22px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .12s;font-family:var(--M)}
+.pin-key:active{transform:scale(.94);background:rgba(21,101,192,.08);border-color:var(--blue)}
+.pin-key.del{font-size:18px;color:var(--muted)}.pin-key.empty{background:transparent;border:none;cursor:default}
+.pin-err{font-size:12px;color:var(--red);font-weight:600;text-align:center;margin-top:10px;min-height:18px}
+.pin-back{position:absolute;top:20px;left:20px;font-size:13px;color:var(--muted);cursor:pointer;padding:8px}
+
+/* ══ HEADER ══ */
+.hdr{position:sticky;top:0;z-index:60;
+  background:linear-gradient(135deg,var(--blue),var(--db));
+  padding:12px 16px;display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 3px 14px rgba(21,101,192,.35)}
+.hdr-logo{display:flex;align-items:center;gap:10px}
+.hdr-ic{width:36px;height:36px;border-radius:9px;background:rgba(255,255,255,.2);
+  border:1.5px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:10px;color:#fff;text-align:center;line-height:1.2}
+.hdr-title{font-size:14px;font-weight:700;color:#fff}
+.hdr-sub{font-size:10px;color:rgba(255,255,255,.7);margin-top:1px}
+.hdr-right{text-align:right}
+.hdr-date{font-family:var(--M);font-size:10px;color:rgba(255,255,255,.7)}
+.hdr-pill{margin-top:3px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;
+  background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);
+  color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+
+/* ══ TABS ══ */
+.tabs{display:flex;background:var(--surf);border:1px solid var(--bdr);
+  border-radius:11px;padding:4px;gap:4px;margin:12px 14px 4px}
+.tab{flex:1;padding:9px 4px;border-radius:8px;border:none;background:transparent;
+  font-family:var(--F);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .15s;text-align:center}
+.tab.on{background:#fff;color:var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+
+/* ══ STATS ══ */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:10px 14px}
+.stat{background:#fff;border:1px solid var(--bdr);border-radius:11px;padding:9px 4px;text-align:center;
+  box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.stn{font-size:20px;font-weight:800;line-height:1}
+.stl{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-top:2px;font-weight:600}
+.cb{color:var(--blue)}.cg{color:var(--green)}.co{color:var(--orange)}.cr{color:var(--red)}
+
+/* ══ SEARCH ══ */
+.search-wrap{padding:4px 14px 8px;position:relative}
+.search-inp{width:100%;background:#fff;border:1.5px solid var(--bdr);font-family:var(--F);
+  font-size:13px;padding:10px 36px 10px 13px;border-radius:11px;outline:none;color:var(--text)}
+.search-inp:focus{border-color:var(--blue)}
+.search-ic{position:absolute;right:24px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px;pointer-events:none}
+
+/* ══ FILTER BAR ══ */
+.filter-bar{display:flex;gap:6px;overflow-x:auto;padding:4px 14px 8px;scrollbar-width:none}
+.filter-bar::-webkit-scrollbar{display:none}
+.fb{flex-shrink:0;padding:5px 13px;border-radius:20px;border:1.5px solid var(--bdr);
+  background:#fff;font-family:var(--F);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .12s}
+.fb.on{background:var(--blue);border-color:var(--blue);color:#fff}
+
+/* ══ SEC LABEL ══ */
+.sec-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:1.3px;padding:4px 14px 6px;display:flex;align-items:center;gap:8px}
+.sec-lbl::after{content:'';flex:1;height:1px;background:var(--bdr)}
+
+/* ══ ACCOUNT CARDS ══ */
+.cards-wrap{padding:0 14px 20px}
+.acc-card{background:#fff;border:1px solid var(--bdr);border-left:3px solid var(--bdr);
+  border-radius:14px;padding:13px 14px;margin-bottom:10px;
+  box-shadow:0 1px 6px rgba(0,0,0,.05);animation:cardIn .25s ease both}
+@keyframes cardIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.acc-card.fresh{border-left-color:var(--blue)}
+.acc-card.called{border-left-color:var(--purple)}
+.acc-card.fixed{border-left-color:var(--green)}
+.acc-card.rescheduled{border-left-color:var(--orange)}
+.acc-card.critical{border-left-color:var(--red)}
+.acc-card.collected{border-left-color:var(--green);opacity:.8}
+
+.ac-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+.ac-no{font-family:var(--M);font-size:14px;font-weight:700;color:var(--blue)}
+.badge{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px}
+.b-fresh{background:rgba(21,101,192,.1);color:var(--blue)}
+.b-called{background:rgba(106,27,154,.1);color:var(--purple)}
+.b-fixed{background:rgba(46,125,50,.1);color:var(--green)}
+.b-rescheduled{background:rgba(230,81,0,.1);color:var(--orange)}
+.b-critical{background:rgba(211,47,47,.1);color:var(--red)}
+.b-collected{background:rgba(46,125,50,.1);color:var(--green)}
+
+.ac-name{font-size:14px;font-weight:700;margin-bottom:7px}
+.ac-meta{display:flex;flex-wrap:wrap;gap:5px 13px;margin-bottom:8px}
+.ac-meta span{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:3px}
+.ac-meta span b{color:var(--text);font-weight:600}
+
+.exec-chip{display:flex;align-items:center;justify-content:space-between;
+  padding:7px 10px;background:rgba(21,101,192,.05);border:1px solid rgba(21,101,192,.15);border-radius:9px;margin-bottom:8px}
+.exec-lbl{font-size:9px;color:var(--blue);font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+.exec-val{font-size:12px;font-weight:800;color:var(--blue)}
+
+.last-outcome{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:7px;display:inline-block}
+.lo-orange{background:rgba(230,81,0,.08);color:var(--orange)}
+.lo-green{background:rgba(46,125,50,.08);color:var(--green)}
+.lo-red{background:rgba(211,47,47,.08);color:var(--red)}
+.lo-blue{background:rgba(21,101,192,.08);color:var(--blue)}
+
+/* ══ TIMESTAMP ══ */
+.ts-row{font-family:var(--M);font-size:10px;color:var(--muted);margin-bottom:7px;
+  display:flex;align-items:center;gap:6px}
+.ts-row span{color:var(--text);font-weight:600}
+
+/* ══ LOG CALL SECTION ══ */
+.log-section{border-top:1px dashed var(--bdr);padding-top:10px;margin-top:4px}
+.log-title{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.8px;margin-bottom:8px}
+.field{margin-bottom:9px}
+.field label{font-size:10px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.8px;font-weight:700;margin-bottom:4px;display:block}
+.fi{width:100%;background:var(--surf);border:1.5px solid var(--bdr);color:var(--text);
+  font-family:var(--F);font-size:12px;padding:9px 12px;border-radius:9px;outline:none;transition:border-color .15s;
+  -webkit-appearance:none}
+.fi:focus{border-color:var(--blue)}
+select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;background-color:var(--surf)}
+textarea.fi{resize:none;height:52px;font-size:12px}
+.appt-field{display:none}
+
+.log-btn{width:100%;padding:10px;border:none;border-radius:10px;
+  background:linear-gradient(135deg,var(--blue),var(--db));
+  color:#fff;font-family:var(--F);font-size:13px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  box-shadow:0 3px 10px rgba(21,101,192,.3)}
+.log-btn:active{transform:scale(.97)}
+.log-saved{font-size:11px;color:var(--green);font-weight:700;text-align:center;
+  margin-top:6px;display:none;padding:6px;background:rgba(46,125,50,.07);border-radius:8px}
+
+/* ══ CALL HISTORY ══ */
+.hist-toggle{font-size:11px;color:var(--blue);font-weight:700;cursor:pointer;
+  margin-bottom:8px;display:inline-flex;align-items:center;gap:4px}
+.hist-list{display:none}
+.hist-item{padding:7px 10px;background:var(--surf);border:1px solid var(--bdr);
+  border-radius:9px;margin-bottom:5px;font-size:11px}
+.hist-ts{font-family:var(--M);font-size:9px;color:var(--muted);margin-bottom:2px}
+.hist-out{font-weight:700;color:var(--text)}
+
+/* ══ PENDING TAB ══ */
+.pend-mine-lbl{font-size:10px;font-weight:800;color:var(--blue);
+  background:rgba(21,101,192,.07);padding:6px 14px;
+  border-bottom:1px solid var(--bdr);margin-bottom:4px}
+
+/* ══ LOADING / EMPTY ══ */
+.loading-b{background:#fff;border:1px solid var(--bdr);border-radius:var(--r);
+  padding:20px;text-align:center;color:var(--muted);font-size:13px;margin:0 14px}
+.empty-state{text-align:center;padding:32px 16px;color:var(--muted);font-size:13px}
+.empty-ic{font-size:36px;opacity:.3;margin-bottom:8px}
+
+/* ══ TOAST ══ */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  padding:9px 20px;border-radius:28px;font-weight:700;font-size:13px;
+  white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .25s;
+  z-index:500;box-shadow:0 4px 16px rgba(0,0,0,.18)}
+.toast.show{opacity:1}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:4px}
+</style>
+</head>
+<body>
+
+<!-- ══ PICKER ══ -->
+<div class="picker" id="pickerScreen">
+  <div class="pk-top">
+    <div class="pk-logo">VOA<br>TC</div>
+    <div class="pk-title">VOA Telecaller</div>
+    <div class="pk-sub">Calling & Follow-up App<br>Tap your name to continue</div>
+  </div>
+  <div class="pk-lbl">Telecallers</div>
+  <div class="name-grid" id="tcGrid"></div>
+</div>
+
+<!-- ══ PIN ══ -->
+<div class="pin-screen" id="pinScreen" style="display:none">
+  <div class="pin-back" onclick="backToPicker()">← Back</div>
+  <div class="pin-avatar">📞</div>
+  <div class="pin-name" id="pinName"></div>
+  <div class="pin-label" id="pinLabel">Enter your PIN</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-pad">
+    <div class="pin-key" onclick="pinKey('1')">1</div><div class="pin-key" onclick="pinKey('2')">2</div>
+    <div class="pin-key" onclick="pinKey('3')">3</div><div class="pin-key" onclick="pinKey('4')">4</div>
+    <div class="pin-key" onclick="pinKey('5')">5</div><div class="pin-key" onclick="pinKey('6')">6</div>
+    <div class="pin-key" onclick="pinKey('7')">7</div><div class="pin-key" onclick="pinKey('8')">8</div>
+    <div class="pin-key" onclick="pinKey('9')">9</div>
+    <div class="pin-key empty"></div>
+    <div class="pin-key" onclick="pinKey('0')">0</div>
+    <div class="pin-key del" onclick="pinDel()">⌫</div>
+  </div>
+  <div class="pin-err" id="pinErr"></div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div class="app" id="mainApp" style="display:none">
+  <div class="hdr">
+    <div class="hdr-logo">
+      <div class="hdr-ic">VOA<br>TC</div>
+      <div>
+        <div class="hdr-title">VOA Telecaller</div>
+        <div class="hdr-sub" id="hdrSub">My Accounts</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="hdr-date" id="hdrDate"></div>
+      <div class="hdr-pill" onclick="doLogout()"><span id="hdrUser"></span>&nbsp;⇄</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" id="tabMy"   onclick="switchTab('my')">📞 My Calls</button>
+    <button class="tab"    id="tabPend" onclick="switchTab('pending')">⏳ Pending</button>
+    <button class="tab"    id="tabAll"  onclick="switchTab('all')">👥 All Team</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stn cb" id="stTotal">0</div><div class="stl">Assigned</div></div>
+    <div class="stat"><div class="stn cg" id="stFixed">0</div><div class="stl">Fixed</div></div>
+    <div class="stat"><div class="stn co" id="stPend">0</div><div class="stl">Pending</div></div>
+    <div class="stat"><div class="stn cr" id="stCrit">0</div><div class="stl">Critical</div></div>
+  </div>
+
+  <!-- MY CALLS TAB -->
+  <div id="tabMyContent">
+    <div class="filter-bar">
+      <button class="fb on" onclick="setFilter('all',this)">All</button>
+      <button class="fb" onclick="setFilter('fresh',this)">🆕 Fresh</button>
+      <button class="fb" onclick="setFilter('called',this)">📞 Called</button>
+      <button class="fb" onclick="setFilter('fixed',this)">✅ Fixed</button>
+      <button class="fb" onclick="setFilter('pending',this)">⏳ Pending</button>
+      <button class="fb" onclick="setFilter('critical',this)">🔴 Critical</button>
+    </div>
+    <div class="search-wrap">
+      <input class="search-inp" id="mySearch" placeholder="🔍  Search account / name..." oninput="renderMy()">
+      <span class="search-ic"></span>
+    </div>
+    <div class="cards-wrap" id="myList">
+      <div class="loading-b">⏳ Loading your accounts...</div>
+    </div>
+  </div>
+
+  <!-- PENDING TAB -->
+  <div id="tabPendContent" style="display:none">
+    <div class="filter-bar" id="pendExecFilter"></div>
+    <div class="cards-wrap" id="pendList">
+      <div class="loading-b">⏳ Loading pending...</div>
+    </div>
+  </div>
+
+  <!-- ALL TEAM TAB -->
+  <div id="tabAllContent" style="display:none">
+    <div class="filter-bar" id="allExecFilter"></div>
+    <div class="search-wrap">
+      <input class="search-inp" id="allSearch" placeholder="🔍  Search account / name..." oninput="renderAll()">
+    </div>
+    <div class="cards-wrap" id="allList">
+      <div class="loading-b">⏳ Loading all accounts...</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GS_URL = 'https://script.google.com/macros/s/AKfycbzx89LgDS3f7_eddmWd7v0FaZ_THxmWxyI1B_zreSSCYJ7L5LM14Y0MZ1DHAhNEAEco/exec';
+
+const TELECALLERS = [
+  'Jamuna','Sudha','Sankari','Sabitha','Nithya','Priya','Jenifer'
+];
+
+const EXECUTIVES = ['Suresh','Santhosh','Nandha','Mano','Ganesh','Jaya','Gautham'];
+
+const TC_OUTCOMES = [
+  {val:'Appointment Fixed', label:'✅ Appointment Fixed'},
+  {val:'Call Back Later',   label:'🔄 Call Back Later'},
+  {val:'Not Reachable',     label:'📵 Not Reachable'},
+  {val:'Wrong Number',      label:'❌ Wrong Number'},
+  {val:'Already Collected', label:'✅ Already Collected'},
+  {val:'Disconnected',      label:'🔇 Disconnected'},
+  {val:'Refused',           label:'🚫 Refused to Return'},
+];
+
+let USER='', myAccounts=[], allAccounts=[], pendingAccounts=[];
+let myFilter='all', callLogs={};
+let pinBuffer='', pinTarget='', pinLocked=false, pinAttempts=0;
+
+// ══ INIT ══
+(function(){
+  document.getElementById('hdrDate').textContent =
+    new Date().toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});
+  buildPicker();
+  const saved = localStorage.getItem('voa_tc_session');
+  if(saved){
+    const s=JSON.parse(saved);
+    if(s.date===todayStr()){ enterApp(s.user,true); return; }
+  }
+  document.getElementById('pickerScreen').style.display='flex';
+})();
+
+function todayStr(){ return new Date().toLocaleDateString('en-GB'); }
+
+function nowStamp(){
+  const n=new Date();
+  const time=n.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const date=n.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  return {time, date, timestamp: date+' '+time};
+}
+
+function show(id){
+  ['pickerScreen','pinScreen','mainApp'].forEach(i=>{
+    const el=document.getElementById(i);
+    if(!el) return;
+    el.style.display = i===id?(i==='mainApp'?'block':'flex'):'none';
+  });
+}
+
+// ══ PICKER ══
+function buildPicker(){
+  document.getElementById('tcGrid').innerHTML = TELECALLERS.map((name,i)=>
+    `<div class="nb" onclick="startPin('${name}')">
+      <div class="nb-av">📞</div>
+      <div class="nb-name">${name}</div>
+      <div class="nb-role">Telecaller</div>
+    </div>`
+  ).join('');
+}
+
+// ══ PIN ══
+function startPin(name){
+  pinTarget=name; pinBuffer='';
+  document.getElementById('pinName').textContent=name;
+  document.getElementById('pinErr').textContent='';
+  updateDots();
+  const stored=localStorage.getItem('voa_tc_pin_'+name);
+  document.getElementById('pinLabel').textContent=stored?'Enter your PIN':'Set a new 4-digit PIN';
+  show('pinScreen');
+}
+function pinKey(k){
+  if(pinLocked||pinBuffer.length>=4) return;
+  pinBuffer+=k; updateDots();
+  if(pinBuffer.length===4) setTimeout(checkPin,120);
+}
+function pinDel(){ pinBuffer=pinBuffer.slice(0,-1); updateDots(); document.getElementById('pinErr').textContent=''; }
+function updateDots(){ for(let i=0;i<4;i++) document.getElementById('d'+i).classList.toggle('filled',i<pinBuffer.length); }
+function checkPin(){
+  const stored=localStorage.getItem('voa_tc_pin_'+pinTarget);
+  if(!stored){
+    const c=localStorage.getItem('voa_tc_pin_c_'+pinTarget);
+    if(!c){ localStorage.setItem('voa_tc_pin_c_'+pinTarget,pinBuffer); document.getElementById('pinLabel').textContent='Confirm PIN'; pinBuffer=''; updateDots(); return; }
+    if(pinBuffer===c){ localStorage.setItem('voa_tc_pin_'+pinTarget,hashPin(pinBuffer)); localStorage.removeItem('voa_tc_pin_c_'+pinTarget); enterApp(pinTarget); }
+    else{ localStorage.removeItem('voa_tc_pin_c_'+pinTarget); shakeErr("PINs don't match!"); document.getElementById('pinLabel').textContent='Set a new 4-digit PIN'; pinBuffer=''; updateDots(); }
+    return;
+  }
+  if(hashPin(pinBuffer)===stored){ pinAttempts=0; enterApp(pinTarget); }
+  else{
+    pinAttempts++;
+    if(pinAttempts>=3){ pinLocked=true; shakeErr('Too many attempts! Wait 10 min'); setTimeout(()=>{pinLocked=false;pinAttempts=0;document.getElementById('pinErr').textContent='';},600000); }
+    else shakeErr('Wrong PIN! '+(3-pinAttempts)+' left');
+    pinBuffer=''; updateDots();
+  }
+}
+function shakeErr(msg){
+  document.getElementById('pinErr').textContent=msg;
+  document.querySelectorAll('.pin-dot').forEach(d=>{d.classList.add('shake');setTimeout(()=>d.classList.remove('shake'),300);});
+}
+function hashPin(pin){ let h=0; for(let i=0;i<pin.length;i++) h=((h<<5)-h)+pin.charCodeAt(i)*31*(i+7); return (h>>>0).toString(36); }
+function backToPicker(){ localStorage.removeItem('voa_tc_pin_c_'+pinTarget); show('pickerScreen'); }
+
+// ══ ENTER APP ══
+async function enterApp(name, resume=false){
+  USER=name;
+  localStorage.setItem('voa_tc_session',JSON.stringify({user:name,date:todayStr()}));
+  document.getElementById('hdrUser').textContent=name;
+  document.getElementById('hdrSub').textContent=name+' — Telecaller';
+  // Load saved call logs from localStorage
+  callLogs = JSON.parse(localStorage.getItem('voa_tc_logs_'+name)||'{}');
+  show('mainApp');
+  await loadData();
+}
+
+function doLogout(){
+  if(!confirm('Logout?')) return;
+  localStorage.removeItem('voa_tc_session');
+  buildPicker(); show('pickerScreen');
+}
+
+// ══ LOAD DATA ══
+async function loadData(){
+  document.getElementById('myList').innerHTML='<div class="loading-b">⏳ Loading your accounts...</div>';
+  try{
+    // Load accounts assigned to this TC
+    const r = await fetch(GS_URL+'?type=appointments&tc='+encodeURIComponent(USER.toUpperCase()));
+    const d = await r.json();
+    if(d.status==='success'&&d.accounts){
+      myAccounts = d.accounts;
+      localStorage.setItem('voa_tc_accounts_'+USER, JSON.stringify(myAccounts));
+    } else {
+      const cached = localStorage.getItem('voa_tc_accounts_'+USER);
+      if(cached){ myAccounts=JSON.parse(cached); showToast('Offline — cached data'); }
+      else myAccounts=[];
+    }
+
+    // Load pending from all execs
+    const allPend=[];
+    for(const exec of EXECUTIVES){
+      try{
+        const rp=await fetch(GS_URL+'?type=pending&exec='+encodeURIComponent(exec.toUpperCase()));
+        const dp=await rp.json();
+        if(dp.status==='success'&&dp.pending) dp.pending.forEach(a=>allPend.push({...a,execName:exec}));
+      }catch(e){}
+    }
+    pendingAccounts=allPend;
+
+    // Load all accounts for all team tab
+    const allAcc=[];
+    for(const exec of EXECUTIVES){
+      try{
+        const ra=await fetch(GS_URL+'?type=appointments&exec='+encodeURIComponent(exec.toUpperCase()));
+        const da=await ra.json();
+        if(da.status==='success'&&da.accounts) da.accounts.forEach(a=>allAcc.push({...a,execName:exec}));
+      }catch(e){}
+    }
+    allAccounts=allAcc;
+
+    updateStats();
+    renderMy();
+    buildPendFilter();
+    buildAllFilter();
+  }catch(err){
+    const cached=localStorage.getItem('voa_tc_accounts_'+USER);
+    if(cached){ myAccounts=JSON.parse(cached); updateStats(); renderMy(); showToast('Offline — cached','red'); }
+    else document.getElementById('myList').innerHTML='<div class="loading-b">❌ Could not load</div>';
+  }
+}
+
+function updateStats(){
+  const total=myAccounts.length;
+  const fixed=myAccounts.filter(a=>(a.tcOutcome||'').toLowerCase().includes('fixed')).length;
+  const pendSet=new Set(pendingAccounts.map(p=>p.accNo));
+  const pend=myAccounts.filter(a=>pendSet.has(a.accNo)).length;
+  const crit=pendingAccounts.filter(a=>(a.daysPending||0)>=6&&myAccounts.find(m=>m.accNo===a.accNo)).length;
+  document.getElementById('stTotal').textContent=total;
+  document.getElementById('stFixed').textContent=fixed;
+  document.getElementById('stPend').textContent=pend;
+  document.getElementById('stCrit').textContent=crit;
+}
+
+// ══ TAB SWITCH ══
+function switchTab(tab){
+  ['my','pend','all'].forEach(t=>{
+    const tid=t==='my'?'My':t==='pend'?'Pend':'All';
+    document.getElementById('tab'+tid).classList.toggle('on',t===tab);
+    document.getElementById('tab'+(t==='my'?'My':t==='pend'?'Pend':'All')+'Content').style.display=t===tab?'block':'none';
+  });
+  if(tab==='pending') renderPending();
+  if(tab==='all')     renderAll();
+}
+
+// ══ FILTER ══
+let myFilterVal='all';
+function setFilter(f,btn){
+  myFilterVal=f;
+  document.querySelectorAll('.filter-bar .fb').forEach(b=>b.classList.toggle('on',b===btn));
+  renderMy();
+}
+
+// ══ RENDER MY ACCOUNTS ══
+function renderMy(){
+  const q=(document.getElementById('mySearch').value||'').toLowerCase();
+  const pendSet=new Set(pendingAccounts.map(p=>p.accNo));
+  let list=[...myAccounts];
+
+  if(myFilterVal==='fresh')    list=list.filter(a=>!a.tcOutcome&&!a.executive);
+  if(myFilterVal==='called')   list=list.filter(a=>a.tcOutcome&&!a.tcOutcome.toLowerCase().includes('fixed'));
+  if(myFilterVal==='fixed')    list=list.filter(a=>(a.tcOutcome||'').toLowerCase().includes('fixed'));
+  if(myFilterVal==='pending')  list=list.filter(a=>pendSet.has(a.accNo));
+  if(myFilterVal==='critical') list=list.filter(a=>{
+    const p=pendingAccounts.find(p=>p.accNo===a.accNo);
+    return p&&(p.daysPending||0)>=6;
+  });
+  if(q) list=list.filter(a=>String(a.accNo).toLowerCase().includes(q)||a.name.toLowerCase().includes(q));
+
+  if(!list.length){
+    document.getElementById('myList').innerHTML='<div class="empty-state"><div class="empty-ic">📭</div>No accounts found</div>';
+    return;
+  }
+  document.getElementById('myList').innerHTML=list.map((a,i)=>buildMyCard(a,i)).join('');
+}
+
+// ══ BUILD MY CARD ══
+function buildMyCard(a, idx){
+  const pendData=pendingAccounts.find(p=>p.accNo===a.accNo);
+  const d=pendData?.daysPending||0;
+  const logs=callLogs[a.accNo]||[];
+  const lastLog=logs[logs.length-1]||null;
+
+  // Determine status
+  let status='fresh', badgeCls='b-fresh', badgeTxt='🆕 Fresh';
+  if(a.tcOutcome&&a.tcOutcome.toLowerCase().includes('fixed')){ status='fixed'; badgeCls='b-fixed'; badgeTxt='✅ Appt Fixed'; }
+  else if(a.tcOutcome){ status='called'; badgeCls='b-called'; badgeTxt='📞 Called'; }
+  if(pendData){
+    if(d>=6){ status='critical'; badgeCls='b-critical'; badgeTxt='🔴 '+d+' days'; }
+    else if(d>=3){ status='rescheduled'; badgeCls='b-rescheduled'; badgeTxt='🟡 '+d+' days'; }
+  }
+  if((a.execOutcome||'').toLowerCase().includes('collected')){ status='collected'; badgeCls='b-collected'; badgeTxt='✅ Collected'; }
+
+  const logId='log_'+String(a.accNo).replace(/\W/g,'_');
+  const histId='hist_'+String(a.accNo).replace(/\W/g,'_');
+
+  return '<div class="acc-card '+status+'" id="card_'+idx+'">'
+    // Top
+    +'<div class="ac-top"><div class="ac-no">'+a.accNo+'</div><span class="badge '+badgeCls+'">'+badgeTxt+'</span></div>'
+    +'<div class="ac-name">'+a.name+'</div>'
+    // Meta
+    +'<div class="ac-meta">'
+    +(a.mobile?'<span>📞 <b>'+a.mobile+'</b></span>':'')
+    +(a.area?'<span>📍 <b>'+a.area+'</b></span>':'')
+    +(a.apptDate?'<span>📅 <b>'+a.apptDate+'</b></span>':'')
+    +'</div>'
+    // Executive chip
+    +'<div class="exec-chip"><span class="exec-lbl">🏍️ Executive</span>'
+    +'<span class="exec-val">'+(a.executive||a.exec||'Not assigned yet')+'</span></div>'
+    // Last exec outcome
+    +(pendData?.lastOutcome?'<div class="last-outcome lo-orange">Last visit: '+pendData.lastOutcome+'</div>':'')
+    +((a.execOutcome&&a.execOutcome.toLowerCase().includes('collected'))?'<div class="last-outcome lo-green">✅ '+a.execOutcome+'</div>':'')
+    // Last call timestamp
+    +(lastLog?'<div class="ts-row">🕐 Last call: <span>'+lastLog.timestamp+'</span></div>':'')
+    // Call history toggle
+    +(logs.length>0?'<div class="hist-toggle" onclick="toggleHist(\''+histId+'\')">📋 '+logs.length+' call'+(logs.length>1?'s':'')+' logged ▾</div>'
+      +'<div class="hist-list" id="'+histId+'">'
+      +logs.map(l=>'<div class="hist-item"><div class="hist-ts">🕐 '+l.timestamp+'</div><div class="hist-out">'+l.outcome+(l.apptDate?' → '+l.apptDate:'')+'</div>'+(l.remark?'<div style="color:var(--muted);font-size:10px;margin-top:2px">'+l.remark+'</div>':'')+'</div>').join('')
+      +'</div>':'')
+    // LOG CALL SECTION
+    +(status!=='collected'?
+      '<div class="log-section">'
+      +'<div class="log-title">📞 Log This Call</div>'
+      +'<div class="field"><label>Outcome</label>'
+      +'<select class="fi" id="out_'+logId+'" onchange="onOutcomeChange(\''+logId+'\')">'
+      +'<option value="">— Select —</option>'
+      +TC_OUTCOMES.map(o=>'<option value="'+o.val+'">'+o.label+'</option>').join('')
+      +'</select></div>'
+      +'<div class="appt-field" id="appt_'+logId+'">'
+      +'<div class="field"><label>Appointment Date</label>'
+      +'<input type="date" class="fi" id="apptd_'+logId+'"></div></div>'
+      +'<div class="field"><label>Remark</label>'
+      +'<textarea class="fi" id="rem_'+logId+'" placeholder="Customer said..., call back time, notes..."></textarea></div>'
+      +'<button class="log-btn" onclick="logCall(\''+String(a.accNo)+'\',\''+logId+'\')">💾 Save Call Log</button>'
+      +'<div class="log-saved" id="saved_'+logId+'">✅ Call logged with timestamp!</div>'
+      +'</div>'
+    :'')
+    +'</div>';
+}
+
+function onOutcomeChange(logId){
+  const val=document.getElementById('out_'+logId)?.value||'';
+  const apptDiv=document.getElementById('appt_'+logId);
+  if(apptDiv) apptDiv.style.display=val==='Appointment Fixed'?'block':'none';
+}
+
+function toggleHist(histId){
+  const el=document.getElementById(histId);
+  if(el) el.style.display=el.style.display==='block'?'none':'block';
+}
+
+// ══ LOG CALL ══
+async function logCall(accNo, logId){
+  const outcome=document.getElementById('out_'+logId)?.value||'';
+  const apptDate=document.getElementById('apptd_'+logId)?.value||'';
+  const remark=document.getElementById('rem_'+logId)?.value.trim()||'';
+  if(!outcome){ showToast('Select outcome!','red'); return; }
+  if(outcome==='Appointment Fixed'&&!apptDate){ showToast('Select appointment date!','red'); return; }
+
+  const ts=nowStamp();
+  const attemptNo=(callLogs[accNo]||[]).length+1;
+
+  const entry={
+    outcome, apptDate, remark,
+    time: ts.time,
+    date: ts.date,
+    timestamp: ts.timestamp,
+    attempt: attemptNo
+  };
+
+  // Save locally first
+  if(!callLogs[accNo]) callLogs[accNo]=[];
+  callLogs[accNo].push(entry);
+  localStorage.setItem('voa_tc_logs_'+USER, JSON.stringify(callLogs));
+
+  // Send to Google Sheet
+  const payload=JSON.stringify({
+    type:'tc_call_log',
+    tc: USER,
+    accNo: accNo,
+    attempt: attemptNo,
+    date: ts.date,
+    time: ts.time,
+    timestamp: ts.timestamp,
+    outcome, apptDate, remark
+  });
+
+  try{
+    const body=new URLSearchParams();
+    body.append('payload',payload);
+    await fetch(GS_URL,{method:'POST',body});
+    showToast('✅ Logged at '+ts.time+'!');
+  }catch(e){
+    showToast('Saved locally — will sync later','red');
+  }
+
+  // Show saved confirmation
+  const savedEl=document.getElementById('saved_'+logId);
+  if(savedEl){ savedEl.style.display='block'; savedEl.textContent='✅ Logged at '+ts.time+' — Attempt #'+attemptNo; }
+
+  // Reset form
+  const outEl=document.getElementById('out_'+logId);
+  const remEl=document.getElementById('rem_'+logId);
+  const apptEl=document.getElementById('apptd_'+logId);
+  const apptDiv=document.getElementById('appt_'+logId);
+  if(outEl) outEl.value='';
+  if(remEl) remEl.value='';
+  if(apptEl) apptEl.value='';
+  if(apptDiv) apptDiv.style.display='none';
+
+  // Refresh
+  renderMy();
+  updateStats();
+}
+
+// ══ RENDER PENDING ══
+function buildPendFilter(){
+  const execs=['ALL',...new Set(pendingAccounts.map(a=>a.execName).filter(Boolean))];
+  document.getElementById('pendExecFilter').innerHTML=execs.map(e=>
+    `<button class="fb ${e==='ALL'?'on':''}" onclick="setPendFilter('${e}',this)">${e==='ALL'?'All Execs':e}</button>`
+  ).join('');
+}
+let pendExecF='ALL';
+function setPendFilter(exec,btn){
+  pendExecF=exec;
+  document.querySelectorAll('#pendExecFilter .fb').forEach(b=>b.classList.toggle('on',b===btn));
+  renderPending();
+}
+
+function renderPending(){
+  let list=[...pendingAccounts];
+  if(pendExecF!=='ALL') list=list.filter(a=>a.execName===pendExecF);
+  if(!list.length){
+    document.getElementById('pendList').innerHTML='<div class="empty-state"><div class="empty-ic">🎉</div>No pending accounts!</div>';
+    return;
+  }
+  const myAccNos=new Set(myAccounts.map(a=>String(a.accNo)));
+  const mine=list.filter(a=>myAccNos.has(String(a.accNo)));
+  const others=list.filter(a=>!myAccNos.has(String(a.accNo)));
+
+  let html='';
+  if(mine.length){
+    html+='<div class="pend-mine-lbl">📞 Your appointments — '+mine.length+' pending</div>';
+    html+=mine.map(a=>buildPendCard(a,true)).join('');
+  }
+  if(others.length){
+    html+='<div class="pend-mine-lbl" style="color:var(--muted);background:var(--surf)">👥 Other team pending — '+others.length+'</div>';
+    html+=others.map(a=>buildPendCard(a,false)).join('');
+  }
+  document.getElementById('pendList').innerHTML=html;
+}
+
+function buildPendCard(a,isMine){
+  const d=a.daysPending||0;
+  const cls=d>=6?'critical':d>=3?'rescheduled':'fresh';
+  const badge=d>=6?'<span class="badge b-critical">🔴 '+d+' days</span>'
+    :d>=3?'<span class="badge b-rescheduled">🟡 '+d+' days</span>'
+    :'<span class="badge b-fresh">🟢 '+(d===0?'Today':d+'d')+'</span>';
+  const logs=callLogs[a.accNo]||[];
+  const lastLog=logs[logs.length-1]||null;
+
+  return '<div class="acc-card '+cls+'">'
+    +'<div class="ac-top"><div class="ac-no">'+a.accNo+'</div>'+badge+'</div>'
+    +'<div class="ac-name">'+a.name+'</div>'
+    +'<div class="ac-meta">'
+    +(a.mobile?'<span>📞 <b>'+a.mobile+'</b></span>':'')
+    +(a.area?'<span>📍 <b>'+a.area+'</b></span>':'')
+    +'</div>'
+    +'<div class="exec-chip"><span class="exec-lbl">🏍️ Executive</span><span class="exec-val">'+(a.execName||'—')+'</span></div>'
+    +(a.lastOutcome?'<div class="last-outcome lo-orange">Last visit: '+a.lastOutcome+'</div>':'')
+    +(isMine?'<div style="font-size:10px;font-weight:800;color:var(--blue);margin-bottom:5px">📞 Your appointment</div>':'')
+    +(lastLog?'<div class="ts-row">🕐 Your last call: <span>'+lastLog.timestamp+'</span></div>':'')
+    +'</div>';
+}
+
+// ══ ALL TEAM ══
+function buildAllFilter(){
+  const execs=['ALL',...EXECUTIVES];
+  document.getElementById('allExecFilter').innerHTML=execs.map(e=>
+    `<button class="fb ${e==='ALL'?'on':''}" onclick="setAllFilter('${e}',this)">${e==='ALL'?'All':e}</button>`
+  ).join('');
+}
+let allExecF='ALL';
+function setAllFilter(exec,btn){
+  allExecF=exec;
+  document.querySelectorAll('#allExecFilter .fb').forEach(b=>b.classList.toggle('on',b===btn));
+  renderAll();
+}
+function renderAll(){
+  const q=(document.getElementById('allSearch').value||'').toLowerCase();
+  const pendSet=new Set(pendingAccounts.map(p=>p.accNo));
+  let list=[...allAccounts];
+  if(allExecF!=='ALL') list=list.filter(a=>a.execName===allExecF);
+  if(q) list=list.filter(a=>String(a.accNo).toLowerCase().includes(q)||(a.name||'').toLowerCase().includes(q));
+  if(!list.length){
+    document.getElementById('allList').innerHTML='<div class="empty-state"><div class="empty-ic">📭</div>No accounts found</div>';
+    return;
+  }
+  document.getElementById('allList').innerHTML=list.map(a=>{
+    const isPend=pendSet.has(a.accNo);
+    const pendData=pendingAccounts.find(p=>p.accNo===a.accNo);
+    const d=pendData?.daysPending||0;
+    const isCollected=(a.execOutcome||'').toLowerCase().includes('collected');
+    const cls=isCollected?'collected':d>=6?'critical':d>=3?'rescheduled':isPend?'called':'fresh';
+    const badge=isCollected?'<span class="badge b-collected">✅ Collected</span>'
+      :d>=6?'<span class="badge b-critical">🔴 '+d+'d</span>'
+      :d>=3?'<span class="badge b-rescheduled">🟡 '+d+'d</span>'
+      :isPend?'<span class="badge b-called">⏳ Pending</span>'
+      :'<span class="badge b-fresh">🆕 Fresh</span>';
+    return '<div class="acc-card '+cls+'">'
+      +'<div class="ac-top"><div class="ac-no">'+a.accNo+'</div>'+badge+'</div>'
+      +'<div class="ac-name">'+a.name+'</div>'
+      +'<div class="ac-meta">'
+      +(a.mobile?'<span>📞 <b>'+a.mobile+'</b></span>':'')
+      +(a.area?'<span>📍 <b>'+a.area+'</b></span>':'')
+      +'</div>'
+      +'<div class="exec-chip"><span class="exec-lbl">🏍️ Executive</span>'
+      +'<span class="exec-val">'+(a.execName||a.executive||'Not assigned')+'</span></div>'
+      +(pendData?.lastOutcome?'<div class="last-outcome lo-orange">Last: '+pendData.lastOutcome+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+function showToast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.style.background=type==='red'?'#D32F2F':type==='grn'?'#2E7D32':'#1A1A1A';
+  t.style.color='#fff';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2600);
+}
+</script>
+</body>
+</html>
