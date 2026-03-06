@@ -317,10 +317,11 @@ textarea.fi{resize:none;height:52px;font-size:12px}
     </div>
   </div>
 
-  <div class="tabs">
-    <button class="tab on" id="tabMy"   onclick="switchTab('my')">📞 My Calls</button>
+  <div class="tabs" style="display:grid;grid-template-columns:repeat(4,1fr)">
+    <button class="tab on" id="tabMy"   onclick="switchTab('my')">📞 Calls</button>
     <button class="tab"    id="tabPend" onclick="switchTab('pending')">⏳ Pending</button>
-    <button class="tab"    id="tabAll"  onclick="switchTab('all')">👥 All Team</button>
+    <button class="tab"    id="tabAll"  onclick="switchTab('all')">👥 Team</button>
+    <button class="tab"    id="tabPerf" onclick="switchTab('perf')">🏆 My Score</button>
   </div>
 
   <div class="stats">
@@ -389,9 +390,95 @@ textarea.fi{resize:none;height:52px;font-size:12px}
       <div class="loading-b">⏳ Loading all accounts...</div>
     </div>
   </div>
-</div>
+  <!-- PERFORMANCE TAB -->
+  <div id="tabPerfContent" style="display:none;padding:14px">
 
-<div class="toast" id="toast"></div>
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#1A0533,#311B92);border-radius:16px;padding:18px;margin-bottom:14px;color:#fff;text-align:center">
+      <div style="font-size:28px;margin-bottom:4px">🏆</div>
+      <div style="font-size:18px;font-weight:900" id="perfName">-</div>
+      <div style="font-size:11px;opacity:.7;margin-top:2px" id="perfPeriodLabel">My Performance Dashboard</div>
+    </div>
+
+    <!-- Period toggle -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <button onclick="setPerfPeriod('today',this)" id="perfBtnToday"
+        style="padding:9px 4px;border-radius:10px;border:2px solid #311B92;background:linear-gradient(135deg,#311B92,#4527A0);color:#fff;font-size:12px;font-weight:800;cursor:pointer">
+        📅 Today
+      </button>
+      <button onclick="setPerfPeriod('week',this)" id="perfBtnWeek"
+        style="padding:9px 4px;border-radius:10px;border:2px solid #DDE3ED;background:#fff;color:#7A8899;font-size:12px;font-weight:800;cursor:pointer">
+        📆 This Week
+      </button>
+      <button onclick="setPerfPeriod('month',this)" id="perfBtnMonth"
+        style="padding:9px 4px;border-radius:10px;border:2px solid #DDE3ED;background:#fff;color:#7A8899;font-size:12px;font-weight:800;cursor:pointer">
+        🗓️ This Month
+      </button>
+    </div>
+
+    <!-- Conversion meter -->
+    <div style="background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:800;color:#1A0533">🎯 Conversion Rate</div>
+        <div style="font-size:20px;font-weight:900;color:#311B92" id="perfConvPct">0%</div>
+      </div>
+      <div style="background:#EEF2FF;border-radius:20px;height:12px;overflow:hidden">
+        <div id="perfConvBar" style="height:100%;border-radius:20px;background:linear-gradient(90deg,#311B92,#7C3AED);width:0%;transition:width .8s ease"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:#7A8899">
+        <span>0%</span><span style="color:#2E7D32;font-weight:700">Target: 30%</span><span>100%</span>
+      </div>
+    </div>
+
+    <!-- Stats grid -->
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px">
+      <div style="background:linear-gradient(135deg,#E8EAF6,#C5CAE9);border-radius:14px;padding:14px;border-top:3px solid #3949AB">
+        <div style="font-size:26px;font-weight:900;color:#1A237E" id="perfTotal">0</div>
+        <div style="font-size:11px;color:#3949AB;font-weight:700">📞 Calls Made</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border-radius:14px;padding:14px;border-top:3px solid #2E7D32">
+        <div style="font-size:26px;font-weight:900;color:#1B5E20" id="perfFixed">0</div>
+        <div style="font-size:11px;color:#2E7D32;font-weight:700">✅ Appts Fixed</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#FFF8E1,#FFECB3);border-radius:14px;padding:14px;border-top:3px solid #F57F17">
+        <div style="font-size:26px;font-weight:900;color:#E65100" id="perfCalled">0</div>
+        <div style="font-size:11px;color:#F57F17;font-weight:700">📋 Assigned</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#FFEBEE,#FFCDD2);border-radius:14px;padding:14px;border-top:3px solid #C62828">
+        <div style="font-size:26px;font-weight:900;color:#B71C1C" id="perfPending">0</div>
+        <div style="font-size:11px;color:#C62828;font-weight:700">⏳ Not Called</div>
+      </div>
+    </div>
+
+    <!-- Outcome breakdown -->
+    <div style="background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:800;color:#1A0533">📊 Outcome Breakdown</div>
+        <div style="font-size:10px;color:#7A8899;font-weight:700" id="perfPeriodTag">TODAY</div>
+      </div>
+      <div id="perfOutcomeList"><div style="text-align:center;color:#7A8899;font-size:12px;padding:20px">No calls logged yet</div></div>
+    </div>
+
+    <!-- Daily log (only for week/month view) -->
+    <div id="perfDailySection" style="background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);display:none">
+      <div style="font-size:13px;font-weight:800;color:#1A0533;margin-bottom:12px">📈 Day-wise Calls</div>
+      <div id="perfDailyList"></div>
+    </div>
+
+    <!-- Incentive estimate -->
+    <div style="background:linear-gradient(135deg,#1A0533,#4527A0);border-radius:14px;padding:16px;color:#fff;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:800;margin-bottom:8px;opacity:.8">💰 Incentive Estimate</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:11px;opacity:.7">Fixed Appts × ₹300</div>
+          <div style="font-size:10px;opacity:.5;margin-top:2px">*Actual may vary</div>
+        </div>
+        <div style="font-size:28px;font-weight:900" id="perfIncentive">₹0</div>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <!-- ══ REPORT PANEL ══ -->
 <div id="reportPanel" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.5);align-items:flex-end">
@@ -417,7 +504,7 @@ textarea.fi{resize:none;height:52px;font-size:12px}
 </div>
 
 <script>
-const GS_URL = 'https://script.google.com/macros/s/AKfycbxabMvnbts0IkaUCpZg-d-0u000GgZ1-q9ALczPOV2i1-6YaQ6GvdVA8yTronU--Ck/exec';
+const GS_URL = 'https://script.google.com/macros/s/AKfycbzedXGKSK2f_xFy4ALADapwfUP7ifQ7xPNa04nbVfUObN_hj8kYLIR9Jap6ySZ4F215/exec';
 
 const TELECALLERS = [
   'Jamuna','Sudha','Sankari','Sabitha','Nithya','Priya','Jenifer'
@@ -610,13 +697,147 @@ function updateStats(){
 
 // ══ TAB SWITCH ══
 function switchTab(tab){
-  ['my','pend','all'].forEach(t=>{
-    const tid=t==='my'?'My':t==='pend'?'Pend':'All';
+  ['my','pend','all','perf'].forEach(t=>{
+    const tid=t==='my'?'My':t==='pend'?'Pend':t==='all'?'All':'Perf';
     document.getElementById('tab'+tid).classList.toggle('on',t===tab);
-    document.getElementById('tab'+(t==='my'?'My':t==='pend'?'Pend':'All')+'Content').style.display=t===tab?'block':'none';
+    document.getElementById('tab'+tid+'Content').style.display=t===tab?'block':'none';
   });
   if(tab==='pending') renderPending();
   if(tab==='all')     renderAll();
+  if(tab==='perf')    renderPerf();
+}
+
+let perfPeriod = 'today';
+
+function setPerfPeriod(period, btn){
+  perfPeriod = period;
+  ['today','week','month'].forEach(p=>{
+    const b = document.getElementById('perfBtn'+p.charAt(0).toUpperCase()+p.slice(1));
+    if(b){
+      b.style.background   = p===period ? 'linear-gradient(135deg,#311B92,#4527A0)' : '#fff';
+      b.style.color        = p===period ? '#fff' : '#7A8899';
+      b.style.borderColor  = p===period ? '#311B92' : '#DDE3ED';
+    }
+  });
+  renderPerf();
+}
+
+function getDateRange(period){
+  const now  = new Date();
+  const today= now.toISOString().split('T')[0];
+  if(period==='today') return {from:today, to:today, label:'Today — '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'})};
+  if(period==='week'){
+    const day  = now.getDay()||7; // Mon=1
+    const mon  = new Date(now); mon.setDate(now.getDate()-(day-1));
+    const sun  = new Date(mon); sun.setDate(mon.getDate()+6);
+    return {from:mon.toISOString().split('T')[0], to:sun.toISOString().split('T')[0],
+            label:'This Week ('+mon.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' – '+sun.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+')'};
+  }
+  // month
+  const from = new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0];
+  const to   = new Date(now.getFullYear(),now.getMonth()+1,0).toISOString().split('T')[0];
+  return {from, to, label:now.toLocaleDateString('en-GB',{month:'long',year:'numeric'})};
+}
+
+function renderPerf(){
+  if(!myAccounts.length) return;
+
+  const range   = getDateRange(perfPeriod);
+  const fromDt  = range.from;
+  const toDt    = range.to;
+
+  document.getElementById('perfName').textContent        = USER;
+  document.getElementById('perfPeriodLabel').textContent = range.label;
+  document.getElementById('perfPeriodTag').textContent   = perfPeriod==='today'?'TODAY':perfPeriod==='week'?'THIS WEEK':'THIS MONTH';
+
+  // collect all call logs in period
+  const logsInPeriod = [];
+  myAccounts.forEach(a=>{
+    if(a.callHistory && a.callHistory.length){
+      a.callHistory.forEach(h=>{
+        const d=(h.date||h.timestamp||'').split(' ')[0].split('T')[0];
+        if(d>=fromDt && d<=toDt) logsInPeriod.push({...h, accNo:a.accNo, date:d});
+      });
+    }
+  });
+
+  const callsMade  = logsInPeriod.length;
+  const fixedLogs  = logsInPeriod.filter(h=>(h.outcome||'').toLowerCase().includes('appointment')||(h.outcome||'').toLowerCase().includes('fixed'));
+  const fixed      = fixedLogs.length;
+  const assigned   = myAccounts.length;
+  const notCalled  = myAccounts.filter(a=>!a.tcOutcome).length;
+  const convPct    = callsMade>0 ? Math.round(fixed/callsMade*100) : 0;
+
+  // update stats
+  document.getElementById('perfTotal').textContent   = callsMade;
+  document.getElementById('perfFixed').textContent   = fixed;
+  document.getElementById('perfCalled').textContent  = assigned;
+  document.getElementById('perfPending').textContent = notCalled;
+  document.getElementById('perfConvPct').textContent = convPct+'%';
+  document.getElementById('perfConvBar').style.width = Math.min(convPct,100)+'%';
+  document.getElementById('perfIncentive').textContent = '₹'+(fixed*300).toLocaleString('en-IN');
+
+  // bar color
+  const barEl = document.getElementById('perfConvBar');
+  barEl.style.background = convPct>=30 ? 'linear-gradient(90deg,#2E7D32,#66BB6A)'
+                         : convPct>=15 ? 'linear-gradient(90deg,#F57F17,#FFB300)'
+                         :               'linear-gradient(90deg,#C62828,#EF5350)';
+
+  // outcome breakdown
+  const counts={};
+  logsInPeriod.forEach(h=>{ if(h.outcome){ counts[h.outcome]=(counts[h.outcome]||0)+1; }});
+  const emojiMap={'Appointment Fixed':'✅','Future Appointment':'📅','Rescheduled Pending':'🔄','Call Back':'🔄','RNR/Busy':'📵','Switch Off':'📴','Incoming Calls Barred':'🚫','Out of Station':'✈️','Refund Issue':'💰','Mail Confirmation':'📧','Reconnection':'🔁','Shifted':'📍','Wrong Number':'❌','Already Collected':'✅','Own Router':'📦','Router Lost':'📦','Line Activated':'📶','Not Willing to Give':'🙅'};
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const maxVal = sorted.length>0?sorted[0][1]:1;
+  document.getElementById('perfOutcomeList').innerHTML = sorted.length===0
+    ? '<div style="text-align:center;color:#7A8899;font-size:12px;padding:20px">No calls logged in this period</div>'
+    : sorted.map(([outcome,count])=>{
+        const pct=Math.round(count/callsMade*100);
+        const barW=Math.round(count/maxVal*100);
+        const em=emojiMap[outcome]||'📋';
+        return `<div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+            <div style="font-size:12px;font-weight:700;color:#1A0533">${em} ${outcome}</div>
+            <div style="font-size:11px;font-weight:900;color:#311B92">${count} <span style="color:#7A8899;font-weight:500">(${pct}%)</span></div>
+          </div>
+          <div style="background:#EEF2FF;border-radius:20px;height:7px">
+            <div style="height:100%;border-radius:20px;background:#4527A0;width:${barW}%;transition:width .6s ease"></div>
+          </div>
+        </div>`;
+      }).join('');
+
+  // day-wise section (only for week/month)
+  const dailySection = document.getElementById('perfDailySection');
+  if(perfPeriod==='today'){
+    dailySection.style.display='none';
+  } else {
+    dailySection.style.display='block';
+    // group logs by date
+    const byDate={};
+    logsInPeriod.forEach(h=>{
+      if(!byDate[h.date]) byDate[h.date]={calls:0,fixed:0};
+      byDate[h.date].calls++;
+      if((h.outcome||'').toLowerCase().includes('appointment')||(h.outcome||'').toLowerCase().includes('fixed')) byDate[h.date].fixed++;
+    });
+    const dates=Object.keys(byDate).sort().reverse();
+    const maxCalls=dates.length>0?Math.max(...dates.map(d=>byDate[d].calls)):1;
+    document.getElementById('perfDailyList').innerHTML = dates.length===0
+      ? '<div style="text-align:center;color:#7A8899;font-size:12px;padding:10px">No data</div>'
+      : dates.map(d=>{
+          const row=byDate[d];
+          const barW=Math.round(row.calls/maxCalls*100);
+          const dayLabel=new Date(d).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});
+          return `<div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+              <div style="font-size:11px;font-weight:700;color:#1A0533">${dayLabel}</div>
+              <div style="font-size:11px;color:#7A8899">${row.calls} calls &nbsp;✅ ${row.fixed} fixed</div>
+            </div>
+            <div style="background:#EEF2FF;border-radius:20px;height:8px">
+              <div style="height:100%;border-radius:20px;background:linear-gradient(90deg,#311B92,#7C3AED);width:${barW}%;transition:width .6s ease"></div>
+            </div>
+          </div>`;
+        }).join('');
+  }
 }
 
 // ══ FILTER ══
@@ -1100,7 +1321,41 @@ function getReportRows(){
   return rows;
 }
 
-function downloadExcel(){
+function showReportPanel(){
+  const panel = document.getElementById('reportPanel');
+  panel.style.display = 'flex';
+  // populate summary
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('rptDate').value = today;
+  const total   = myAccounts.length;
+  const fixed   = myAccounts.filter(a=>(a.tcOutcome||'').toLowerCase().includes('appointment')||(a.tcOutcome||'').toLowerCase().includes('fixed')).length;
+  const called  = myAccounts.filter(a=>a.tcOutcome).length;
+  const pending = total - called;
+  document.getElementById('rptSummary').textContent = 'Report for ' + USER + ' — ' + new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  document.getElementById('rptStats').innerHTML =
+    `<div style="background:#E8EAF6;border-radius:10px;padding:10px 6px;text-align:center">
+       <div style="font-size:18px;font-weight:900;color:#3949AB">${total}</div>
+       <div style="font-size:9px;color:#5C6BC0;font-weight:700">ASSIGNED</div>
+     </div>
+     <div style="background:#E8F5E9;border-radius:10px;padding:10px 6px;text-align:center">
+       <div style="font-size:18px;font-weight:900;color:#2E7D32">${fixed}</div>
+       <div style="font-size:9px;color:#388E3C;font-weight:700">FIXED</div>
+     </div>
+     <div style="background:#FFF8E1;border-radius:10px;padding:10px 6px;text-align:center">
+       <div style="font-size:18px;font-weight:900;color:#F57F17">${called}</div>
+       <div style="font-size:9px;color:#F9A825;font-weight:700">CALLED</div>
+     </div>
+     <div style="background:#FFEBEE;border-radius:10px;padding:10px 6px;text-align:center">
+       <div style="font-size:18px;font-weight:900;color:#C62828">${pending}</div>
+       <div style="font-size:9px;color:#E53935;font-weight:700">PENDING</div>
+     </div>`;
+}
+
+function closeReportPanel(){
+  document.getElementById('reportPanel').style.display = 'none';
+}
+
+function downloadReport(){
   if(!myAccounts.length){ showToast('No accounts to export!','red'); return; }
   const rows = getReportRows();
   const wsData = [['Account No.','Name','Mobile No.','Address 1','SR Number','Area','Location','Name','Sub VOC','VOC','Date']];
@@ -1114,7 +1369,7 @@ function downloadExcel(){
   showToast('Report downloaded!','green');
 }
 
-function shareWhatsApp(){
+function whatsappReport(){
   if(!myAccounts.length){ showToast('No accounts!','red'); return; }
   const today = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
   const rows  = getReportRows().filter(function(r){ return r[8]; });
