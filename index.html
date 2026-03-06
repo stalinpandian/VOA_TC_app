@@ -496,15 +496,19 @@ textarea.fi{resize:none;height:52px;font-size:12px}
       <input type="date" id="rptDate" style="width:100%;padding:10px 12px;border:1.5px solid #DDE3ED;border-radius:10px;font-size:13px;font-family:inherit">
     </div>
 
+    <!-- Outcome breakdown -->
+    <div id="rptBreakdown" style="display:none;margin-bottom:16px;max-height:180px;overflow-y:auto"></div>
+
     <!-- Buttons -->
     <button onclick="downloadReport()" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#2E7D32,#1B5E20);color:#fff;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(46,125,50,.3)">⬇️ Download Excel Report</button>
-    <button onclick="whatsappReport()" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(37,211,102,.3)">📤 Share via WhatsApp</button>
+    <button onclick="whatsappReport()" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(37,211,102,.3)">📤 Download + Share WhatsApp</button>
     <button onclick="closeReportPanel()" style="width:100%;padding:11px;border:1.5px solid #DDE3ED;border-radius:12px;background:#fff;color:#7A8899;font-size:13px;font-weight:700;cursor:pointer">✕ Close</button>
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-const GS_URL = 'https://script.google.com/macros/s/AKfycbzedXGKSK2f_xFy4ALADapwfUP7ifQ7xPNa04nbVfUObN_hj8kYLIR9Jap6ySZ4F215/exec';
+const GS_URL = 'https://script.google.com/macros/s/AKfycbzT3FhBupbQXfL6YctMgHAA7mIKktGLHh3YYdW98OxtpPtVYGR5SO_OWQ-NVSKMCHC2/exec';
 
 const TELECALLERS = [
   'Jamuna','Sudha','Sankari','Sabitha','Nithya','Priya','Jenifer'
@@ -1292,26 +1296,33 @@ function renderAll(){
 
 
 // ══ REPORT GENERATION ══
+const OUTCOME_MAP = {
+  'RNR/Busy':'RNR','Switch Off':'SWITCH OFF','Call Back':'CALL BACK',
+  'Incoming Calls Barred':'INCOMING CALL NOT AVAILABLE','Out of Station':'OUT OF STATION',
+  'Appointment Fixed':'APPOINTMENT FIXED','Future Appointment':'APPOINTMENT FIXED',
+  'Rescheduled Pending Appointment':'CALL BACK','Refund Issue':'REFUND FIRST',
+  'Mail Confirmation':'REFUND FIRST','Reconnection':'RECONNECT','Line Activated':'RECONNECT',
+  'Shifted':'SHIFTING','Wrong Number':'INCORRECT NUMBER',
+  'Already Collected':'ALREADY COLLECTED','Own/Lost/Missing Router':'OWN ROUTER .',
+  'Not Willing to Give':'OWN ROUTER .'
+};
+const EMOJI_MAP = {
+  'APPOINTMENT FIXED':'✅','RNR':'📵','SWITCH OFF':'📴','CALL BACK':'🔄',
+  'ALREADY COLLECTED':'🟡','OWN ROUTER .':'📦','INCORRECT NUMBER':'❌',
+  'REFUND FIRST':'💰','RECONNECT':'🔁','SHIFTING':'📍',
+  'OUT OF STATION':'✈️','INCOMING CALL NOT AVAILABLE':'🚫'
+};
+
 function getReportRows(){
   const today = new Date().toLocaleDateString('en-GB');
-  const rows = [];
+  const rows  = [];
   myAccounts.forEach(function(a){
     const logs = callLogs[a.accNo] || [];
-    const outcomeMap = {
-      'RNR/Busy':'RNR','Switch Off':'SWITCH OFF','Call Back':'CALL BACK',
-      'Incoming Calls Barred':'INCOMING CALL NOT AVAILABLE','Out of Station':'OUT OF STATION',
-      'Appointment Fixed':'APPOINTMENT FIXED','Future Appointment':'APPOINTMENT FIXED',
-      'Rescheduled Pending Appointment':'CALL BACK','Refund Issue':'REFUND FIRST',
-      'Mail Confirmation':'REFUND FIRST','Reconnection':'RECONNECT','Line Activated':'RECONNECT',
-      'Shifted':'SHIFTING','Wrong Number':'INCORRECT NUMBER',
-      'Already Collected':'ALREADY COLLECTED','Own/Lost/Missing Router':'OWN ROUTER .',
-      'Not Willing to Give':'OWN ROUTER .'
-    };
     if(logs.length === 0){
       rows.push([a.accNo,a.name,a.mobile,a.address||'',a.srNumber||'',a.area||'','Coimbatore',USER,'','',today]);
     } else {
       logs.forEach(function(log){
-        const subVoc = outcomeMap[log.outcome] || (log.outcome||'').toUpperCase();
+        const subVoc = OUTCOME_MAP[log.outcome] || (log.outcome||'').toUpperCase();
         const voc    = log.apptDate || log.remark || '';
         const dt     = log.timestamp ? log.timestamp.split(' ')[0] : today;
         rows.push([a.accNo,a.name,a.mobile,a.address||'',a.srNumber||'',a.area||'','Coimbatore',USER,subVoc,voc,dt]);
@@ -1321,86 +1332,147 @@ function getReportRows(){
   return rows;
 }
 
-function showReportPanel(){
-  const panel = document.getElementById('reportPanel');
-  panel.style.display = 'flex';
-  // populate summary
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('rptDate').value = today;
+function getRptStats(){
   const total   = myAccounts.length;
   const fixed   = myAccounts.filter(a=>(a.tcOutcome||'').toLowerCase().includes('appointment')||(a.tcOutcome||'').toLowerCase().includes('fixed')).length;
   const called  = myAccounts.filter(a=>a.tcOutcome).length;
   const pending = total - called;
-  document.getElementById('rptSummary').textContent = 'Report for ' + USER + ' — ' + new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  const convPct = called > 0 ? Math.round(fixed/called*100) : 0;
+  const rows    = getReportRows().filter(r=>r[8]);
+  const counts  = {};
+  rows.forEach(r=>{ counts[r[8]]=(counts[r[8]]||0)+1; });
+  return { total, fixed, called, pending, convPct, counts };
+}
+
+function showReportPanel(){
+  document.getElementById('reportPanel').style.display = 'flex';
+  const s      = getRptStats();
+  const dateStr= new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  document.getElementById('rptDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('rptSummary').textContent = USER + ' · ' + dateStr;
   document.getElementById('rptStats').innerHTML =
     `<div style="background:#E8EAF6;border-radius:10px;padding:10px 6px;text-align:center">
-       <div style="font-size:18px;font-weight:900;color:#3949AB">${total}</div>
-       <div style="font-size:9px;color:#5C6BC0;font-weight:700">ASSIGNED</div>
+       <div style="font-size:20px;font-weight:900;color:#3949AB">${s.total}</div>
+       <div style="font-size:8px;color:#5C6BC0;font-weight:700;margin-top:2px">ASSIGNED</div>
      </div>
      <div style="background:#E8F5E9;border-radius:10px;padding:10px 6px;text-align:center">
-       <div style="font-size:18px;font-weight:900;color:#2E7D32">${fixed}</div>
-       <div style="font-size:9px;color:#388E3C;font-weight:700">FIXED</div>
+       <div style="font-size:20px;font-weight:900;color:#2E7D32">${s.fixed}</div>
+       <div style="font-size:8px;color:#388E3C;font-weight:700;margin-top:2px">FIXED ✅</div>
      </div>
      <div style="background:#FFF8E1;border-radius:10px;padding:10px 6px;text-align:center">
-       <div style="font-size:18px;font-weight:900;color:#F57F17">${called}</div>
-       <div style="font-size:9px;color:#F9A825;font-weight:700">CALLED</div>
+       <div style="font-size:20px;font-weight:900;color:#F57F17">${s.called}</div>
+       <div style="font-size:8px;color:#F9A825;font-weight:700;margin-top:2px">CALLED</div>
      </div>
      <div style="background:#FFEBEE;border-radius:10px;padding:10px 6px;text-align:center">
-       <div style="font-size:18px;font-weight:900;color:#C62828">${pending}</div>
-       <div style="font-size:9px;color:#E53935;font-weight:700">PENDING</div>
+       <div style="font-size:20px;font-weight:900;color:#C62828">${s.pending}</div>
+       <div style="font-size:8px;color:#E53935;font-weight:700;margin-top:2px">PENDING</div>
      </div>`;
+  const breakdownEl = document.getElementById('rptBreakdown');
+  if(breakdownEl){
+    const entries = Object.entries(s.counts).sort((a,b)=>b[1]-a[1]);
+    breakdownEl.innerHTML = entries.length
+      ? entries.map(([out,cnt])=>{
+          const pct = s.called>0?Math.round(cnt/s.called*100):0;
+          return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#F8F9FA;border-radius:8px;margin-bottom:5px">
+            <span style="font-size:12px;font-weight:600">${EMOJI_MAP[out]||'📋'} ${out}</span>
+            <span style="font-size:13px;font-weight:800;color:#1565C0">${cnt} <span style="font-size:10px;color:#7A8899">(${pct}%)</span></span>
+          </div>`;
+        }).join('')
+      : '<div style="text-align:center;color:#7A8899;font-size:12px;padding:10px">No calls logged yet today</div>';
+    breakdownEl.style.display='block';
+  }
 }
 
 function closeReportPanel(){
   document.getElementById('reportPanel').style.display = 'none';
 }
 
+function buildExcelWorkbook(){
+  const rows   = getReportRows();
+  const s      = getRptStats();
+  const dateStr= new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  const wb     = XLSX.utils.book_new();
+
+  // Sheet 1 — Calling Feedback (ACT format)
+  const wsData = [['Account No.','Name','Mobile No.','Address 1','SR Number','Area','Location','Name','Sub VOC','VOC','Date']];
+  rows.forEach(r=>wsData.push(r));
+  const ws1 = XLSX.utils.aoa_to_sheet(wsData);
+  ws1['!cols'] = [{wch:16},{wch:22},{wch:14},{wch:40},{wch:16},{wch:14},{wch:12},{wch:12},{wch:24},{wch:20},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws1, dateStr+'_'+USER);
+
+  // Sheet 2 — Summary
+  const summaryData = [
+    ['VOA CALLING REPORT SUMMARY',''],
+    ['Telecaller', USER],
+    ['Date', dateStr],
+    [''],
+    ['METRIC','COUNT'],
+    ['Total Assigned', s.total],
+    ['Total Called', s.called],
+    ['Appointments Fixed', s.fixed],
+    ['Pending (Not Called)', s.pending],
+    ['Conversion %', s.convPct+'%'],
+    [''],
+    ['OUTCOME BREAKDOWN','COUNT'],
+  ];
+  Object.entries(s.counts).sort((a,b)=>b[1]-a[1]).forEach(([out,cnt])=>summaryData.push([out,cnt]));
+  summaryData.push(['']);
+  summaryData.push(['Est. Incentive (₹300 x Fixed)', '₹'+(s.fixed*300).toLocaleString('en-IN')]);
+  const ws2 = XLSX.utils.aoa_to_sheet(summaryData);
+  ws2['!cols'] = [{wch:30},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Summary');
+
+  return { wb, dateStr, s };
+}
+
 function downloadReport(){
   if(!myAccounts.length){ showToast('No accounts to export!','red'); return; }
-  const rows = getReportRows();
-  const wsData = [['Account No.','Name','Mobile No.','Address 1','SR Number','Area','Location','Name','Sub VOC','VOC','Date']];
-  rows.forEach(function(r){ wsData.push(r); });
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols'] = [{wch:16},{wch:22},{wch:14},{wch:45},{wch:20},{wch:16},{wch:14},{wch:12},{wch:24},{wch:20},{wch:12}];
-  XLSX.utils.book_append_sheet(wb, ws, USER+'_Report');
-  const today = new Date().toLocaleDateString('en-GB').replace(/\//g,'-');
-  XLSX.writeFile(wb, USER+'_Calling_Report_'+today+'.xlsx');
-  showToast('Report downloaded!','green');
+  try {
+    const { wb, dateStr } = buildExcelWorkbook();
+    XLSX.writeFile(wb, USER+'_Calling_Report_'+dateStr.replace(/ /g,'_')+'.xlsx');
+    showToast('✅ Excel downloaded!','grn');
+  } catch(err){
+    showToast('❌ Error: '+err.message,'red');
+  }
 }
 
 function whatsappReport(){
   if(!myAccounts.length){ showToast('No accounts!','red'); return; }
-  const today = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-  const rows  = getReportRows().filter(function(r){ return r[8]; });
-  const counts = {};
-  rows.forEach(function(r){ counts[r[8]] = (counts[r[8]]||0)+1; });
-  const fixed = myAccounts.filter(function(a){
-    return (a.tcOutcome||'').toLowerCase().includes('appointment')||(a.tcOutcome||'').toLowerCase().includes('fixed');
-  });
-  const emojiMap = {
-    'APPOINTMENT FIXED':'✅','RNR':'📵','SWITCH OFF':'📴','CALL BACK':'🔄',
-    'ALREADY COLLECTED':'✅','OWN ROUTER .':'📦','INCORRECT NUMBER':'❌',
-    'REFUND FIRST':'💰','RECONNECT':'🔁','SHIFTING':'📍',
-    'OUT OF STATION':'✈️','INCOMING CALL NOT AVAILABLE':'🚫'
-  };
-  var msg = '📊 *VOA Calling Report*\n';
-  msg += '👤 *'+USER+'*\n';
-  msg += '📅 *'+today+'*\n';
-  msg += '─────────────────\n';
-  msg += '📞 Total Assigned: *'+myAccounts.length+'*\n';
-  msg += '✅ Appointments Fixed: *'+fixed.length+'*\n';
-  msg += '📋 Calls Logged: *'+rows.length+'*\n';
-  msg += '─────────────────\n';
-  msg += '*Outcome Breakdown:*\n';
-  Object.entries(counts).sort(function(a,b){return b[1]-a[1];}).forEach(function(entry){
-    var emoji = emojiMap[entry[0]] || '📋';
-    msg += emoji+' '+entry[0]+': *'+entry[1]+'*\n';
-  });
-  msg += '─────────────────\n';
-  msg += '_VOA Recovery System_';
-  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+
+  // Step 1: Download Excel
+  try {
+    const { wb, dateStr, s } = buildExcelWorkbook();
+    XLSX.writeFile(wb, USER+'_Calling_Report_'+dateStr.replace(/ /g,'_')+'.xlsx');
+
+    // Step 2: Build WhatsApp message
+    const today  = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+    const filled = Math.min(10, Math.round(s.convPct/10));
+    const bar    = '█'.repeat(filled)+'░'.repeat(10-filled);
+    let msg = '📊 *VOA Calling Report*\n';
+    msg += '👤 *'+USER+'*  |  📅 *'+today+'*\n';
+    msg += '━━━━━━━━━━━━━━━━━━\n';
+    msg += '📋 Assigned : *'+s.total+'*\n';
+    msg += '📞 Called   : *'+s.called+'*\n';
+    msg += '✅ Fixed    : *'+s.fixed+'*\n';
+    msg += '⏳ Pending  : *'+s.pending+'*\n';
+    msg += '📈 Conv %   : *'+s.convPct+'%*  '+bar+'\n';
+    msg += '━━━━━━━━━━━━━━━━━━\n';
+    msg += '*Outcome Breakdown:*\n';
+    Object.entries(s.counts).sort((a,b)=>b[1]-a[1]).forEach(([out,cnt])=>{
+      msg += (EMOJI_MAP[out]||'📋')+' '+out+': *'+cnt+'*\n';
+    });
+    msg += '━━━━━━━━━━━━━━━━━━\n';
+    msg += '💰 *Est. Incentive: ₹'+(s.fixed*300).toLocaleString('en-IN')+'*\n';
+    msg += '_(Excel attached separately)_\n';
+    msg += '_VOA Recovery System_';
+
+    showToast('✅ Excel saved! Opening WhatsApp...','grn');
+    setTimeout(()=>{ window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank'); }, 800);
+  } catch(err){
+    showToast('❌ Error: '+err.message,'red');
+  }
 }
+
 
 function showToast(msg,type){
   const t=document.getElementById('toast');
