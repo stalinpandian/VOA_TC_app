@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-title" content="VOA TC">
 <meta name="theme-color" content="#1565C0">
 <title>VOA Telecaller</title>
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
 :root{
@@ -249,7 +250,17 @@ textarea.fi{resize:none;height:52px;font-size:12px}
   z-index:500;box-shadow:0 4px 16px rgba(0,0,0,.18)}
 .toast.show{opacity:1}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#C5CAE9;border-radius:4px}
+
+/* ══ REPORT BUTTONS ══ */
+.rpt-bar{display:flex;gap:8px;padding:8px 14px;background:rgba(255,255,255,.07);border-bottom:1px solid rgba(255,255,255,.1)}
+.rpt-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:8px 10px;border-radius:10px;border:none;font-family:var(--F);
+  font-size:11px;font-weight:800;cursor:pointer;transition:all .15s}
+.rpt-btn:active{transform:scale(.96)}
+.rpt-xl{background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.25)}
+.rpt-wa{background:#25D366;color:#fff;border:1.5px solid #1ebe5d;box-shadow:0 2px 8px rgba(37,211,102,.3)}
 </style>
+
 </head>
 <body>
 
@@ -297,9 +308,12 @@ textarea.fi{resize:none;height:52px;font-size:12px}
         <div class="hdr-sub" id="hdrSub">My Accounts</div>
       </div>
     </div>
-    <div class="hdr-right">
-      <div class="hdr-date" id="hdrDate"></div>
-      <div class="hdr-pill" onclick="doLogout()"><span id="hdrUser"></span>&nbsp;⇄</div>
+    <div class="hdr-right" style="display:flex;align-items:center;gap:8px">
+      <button onclick="showReportPanel()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 11px;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer">📊 Report</button>
+      <div>
+        <div class="hdr-date" id="hdrDate"></div>
+        <div class="hdr-pill" onclick="doLogout()"><span id="hdrUser"></span>&nbsp;⇄</div>
+      </div>
     </div>
   </div>
 
@@ -329,6 +343,8 @@ textarea.fi{resize:none;height:52px;font-size:12px}
     <div style="padding:0 14px 4px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px">📞 Filter by Outcome</div>
     <div class="filter-bar" id="outcomeFilterBar" style="padding-top:0;padding-bottom:10px">
       <button class="fb fbo on" onclick="setOutcomeFilter('',this)">All</button>
+      <button class="fb fbo" onclick="setOutcomeFilter('Connected - Will Give',this)">✅ Connected</button>
+      <button class="fb fbo" onclick="setOutcomeFilter('Connected - Refused',this)">❌ Refused</button>
       <button class="fb fbo" onclick="setOutcomeFilter('RNR/Busy',this)">📵 RNR</button>
       <button class="fb fbo" onclick="setOutcomeFilter('Switch Off',this)">📴 Switch Off</button>
       <button class="fb fbo" onclick="setOutcomeFilter('Call Back',this)">🔄 Call Back</button>
@@ -371,6 +387,29 @@ textarea.fi{resize:none;height:52px;font-size:12px}
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- ══ REPORT PANEL ══ -->
+<div id="reportPanel" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.5);align-items:flex-end">
+  <div style="background:#fff;border-radius:24px 24px 0 0;padding:24px 20px 40px;width:100%;max-width:460px;margin:0 auto">
+    <div style="width:38px;height:4px;background:#DDE3ED;border-radius:4px;margin:0 auto 20px"></div>
+    <div style="font-size:18px;font-weight:800;margin-bottom:6px">📊 My Daily Report</div>
+    <div style="font-size:12px;color:#7A8899;margin-bottom:20px" id="rptSummary">Loading...</div>
+
+    <!-- Stats preview -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px" id="rptStats"></div>
+
+    <!-- Date selector -->
+    <div style="margin-bottom:16px">
+      <label style="font-size:10px;font-weight:800;color:#7A8899;text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:6px">Report Date</label>
+      <input type="date" id="rptDate" style="width:100%;padding:10px 12px;border:1.5px solid #DDE3ED;border-radius:10px;font-size:13px;font-family:inherit">
+    </div>
+
+    <!-- Buttons -->
+    <button onclick="downloadReport()" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#2E7D32,#1B5E20);color:#fff;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(46,125,50,.3)">⬇️ Download Excel Report</button>
+    <button onclick="whatsappReport()" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(37,211,102,.3)">📤 Share via WhatsApp</button>
+    <button onclick="closeReportPanel()" style="width:100%;padding:11px;border:1.5px solid #DDE3ED;border-radius:12px;background:#fff;color:#7A8899;font-size:13px;font-weight:700;cursor:pointer">✕ Close</button>
+  </div>
+</div>
 
 <script>
 const GS_URL = 'https://script.google.com/macros/s/AKfycbxh1kWwTZxaEbV6iyP0sAjR1l83I_bk2RO1LFzdAwmewkp6bwc6IOZTcny_rpQx7T0Z/exec';
@@ -625,6 +664,9 @@ function buildMyCard(a, idx){
   if(tcOut.includes('appointment fixed')){status='fixed';badgeCls='b-fixed';badgeTxt='✅ Appt Fixed';}
   else if(tcOut.includes('future')){status='fixed';badgeCls='b-fixed';badgeTxt='📅 Future Appt';}
   else if(tcOut.includes('rescheduled')){status='rescheduled';badgeCls='b-rescheduled';badgeTxt='🔄 Rescheduled';}
+  else if(tcOut.includes('connected - will give')){status='fixed';badgeCls='b-fixed';badgeTxt='✅ Connected';}
+  else if(tcOut.includes('connected - needs')){status='rescheduled';badgeCls='b-rescheduled';badgeTxt='🔄 Follow Up';}
+  else if(tcOut.includes('connected - refused')){status='critical';badgeCls='b-critical';badgeTxt='❌ Refused';}
   else if(tcOut==='rnr/busy'||tcOut==='switch off'||tcOut==='incoming calls barred'){status='rnr';badgeCls='b-rnr';badgeTxt='📵 '+a.tcOutcome;}
   else if(tcOut==='refund issue'||tcOut==='mail confirmation'||tcOut==='reconnection'||tcOut==='shifted'){status='issue';badgeCls='b-issue';badgeTxt='⚠️ '+a.tcOutcome;}
   else if(a.tcOutcome){status='called';badgeCls='b-called';badgeTxt='📞 '+a.tcOutcome;}
@@ -672,10 +714,14 @@ function buildMyCard(a, idx){
 
   // ── FULL ADDRESS
   if(a.address){
+    const mapQuery = encodeURIComponent(a.address);
+    const mapUrl = 'https://www.google.com/maps/search/?api=1&query='+mapQuery;
     html += '<div style="display:flex;gap:8px;margin-bottom:8px;background:#EEF2FF;border:1.5px solid #C7D2FE;border-radius:10px;padding:10px 12px">';
-    html += '<span style="font-size:15px;flex-shrink:0;margin-top:1px">🏠</span>';
-    html += '<span style="font-size:12px;color:#1e293b;line-height:1.8;font-weight:600;word-break:break-word">'+a.address+'</span>';
-    html += '</div>';
+    html += '<span style="font-size:15px;flex-shrink:0;margin-top:2px">🏠</span>';
+    html += '<div style="flex:1">';
+    html += '<span style="font-size:12px;color:#1e293b;line-height:1.8;font-weight:600;word-break:break-word;display:block">'+a.address+'</span>';
+    html += '<a href="'+mapUrl+'" target="_blank" style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;background:linear-gradient(135deg,#1565C0,#0D47A1);color:#fff;padding:5px 13px;border-radius:20px;text-decoration:none;font-size:11px;font-weight:800;box-shadow:0 2px 8px rgba(21,101,192,.3)">🗺️ Open in Maps</a>';
+    html += '</div></div>';
   }
 
   html += '<div style="height:1px;background:var(--bdr);margin:8px 0"></div>';
@@ -730,6 +776,13 @@ function buildMyCard(a, idx){
   if(status !== 'collected'){
     html += '<div class="log-section">';
     html += '<div class="log-title">📞 Log This Call</div>';
+    // Connected toggle
+    html += '<div class="field"><label>Call Status</label>';
+    html += '<div style="display:flex;gap:8px;margin-bottom:10px">';
+    html += '<button id="con_'+logId+'" data-lid="'+logId+'" data-val="true" onclick="setConnected(this)" style="flex:1;padding:8px;border-radius:9px;border:1.5px solid #A5D6A7;background:#E8F5E9;color:#2E7D32;font-weight:800;font-size:12px;cursor:pointer">✅ Connected</button>';
+    html += '<button id="notcon_'+logId+'" data-lid="'+logId+'" data-val="false" onclick="setConnected(this)" style="flex:1;padding:8px;border-radius:9px;border:1.5px solid var(--bdr);background:var(--surf);color:var(--muted);font-weight:800;font-size:12px;cursor:pointer">❌ Not Connected</button>';
+    html += '</div></div>';
+    html += '<input type="hidden" id="connected_'+logId+'" value="">';
     html += '<div class="field"><label>Outcome</label>';
     html += '<select class="fi" id="out_'+logId+'" onchange="onOutcomeChange(\''+logId+'\')">';
     html += '<option value="">— Select Outcome —</option>';
@@ -738,10 +791,15 @@ function buildMyCard(a, idx){
     html += '<option value="Future Appointment">📅 Future Appointment</option>';
     html += '<option value="Rescheduled Pending Appointment">🔄 Rescheduled Pending Appointment</option>';
     html += '</optgroup>';
-    html += '<optgroup label="📞 Call Status">';
-    html += '<option value="Call Back">🔄 Call Back</option>';
+    html += '<optgroup label="✅ Connected">';
+    html += '<option value="Connected - Will Give">✅ Connected — Will Give</option>';
+    html += '<option value="Connected - Needs Follow Up">🔄 Connected — Needs Follow Up</option>';
+    html += '<option value="Connected - Refused">❌ Connected — Refused</option>';
+    html += '</optgroup>';
+    html += '<optgroup label="📞 Not Connected">';
     html += '<option value="RNR/Busy">📵 RNR / Busy</option>';
     html += '<option value="Switch Off">📴 Switch Off</option>';
+    html += '<option value="Call Back">🔄 Call Back</option>';
     html += '<option value="Incoming Calls Barred">🚫 Incoming Calls Barred</option>';
     html += '<option value="Out of Station">✈️ Out of Station</option>';
     html += '</optgroup>';
@@ -814,6 +872,7 @@ async function logCall(accNo, logId){
   const outcome=document.getElementById('out_'+logId)?.value||'';
   const apptDate=document.getElementById('apptd_'+logId)?.value||'';
   const remark=document.getElementById('rem_'+logId)?.value.trim()||'';
+  const connected=document.getElementById('connected_'+logId)?.value||'';
   if(!outcome){ showToast('Select outcome!','red'); return; }
   const apptVals = ['Appointment Fixed','Future Appointment','Rescheduled Pending Appointment'];
   if(apptVals.includes(outcome) && !apptDate){ showToast('Select appointment date!','red'); return; }
@@ -822,7 +881,7 @@ async function logCall(accNo, logId){
   const attemptNo=(callLogs[accNo]||[]).length+1;
 
   const entry={
-    outcome, apptDate, remark,
+    connected, outcome, apptDate, remark,
     time: ts.time,
     date: ts.date,
     timestamp: ts.timestamp,
@@ -980,6 +1039,84 @@ function renderAll(){
       +(pendData?.lastOutcome?'<div class="last-outcome lo-orange">Last: '+pendData.lastOutcome+'</div>':'')
       +'</div>';
   }).join('');
+}
+
+
+// ══ REPORT GENERATION ══
+function getReportRows(){
+  const today = new Date().toLocaleDateString('en-GB');
+  const rows = [];
+  myAccounts.forEach(function(a){
+    const logs = callLogs[a.accNo] || [];
+    const outcomeMap = {
+      'RNR/Busy':'RNR','Switch Off':'SWITCH OFF','Call Back':'CALL BACK',
+      'Incoming Calls Barred':'INCOMING CALL NOT AVAILABLE','Out of Station':'OUT OF STATION',
+      'Appointment Fixed':'APPOINTMENT FIXED','Future Appointment':'APPOINTMENT FIXED',
+      'Rescheduled Pending Appointment':'CALL BACK','Refund Issue':'REFUND FIRST',
+      'Mail Confirmation':'REFUND FIRST','Reconnection':'RECONNECT','Line Activated':'RECONNECT',
+      'Shifted':'SHIFTING','Wrong Number':'INCORRECT NUMBER',
+      'Already Collected':'ALREADY COLLECTED','Own/Lost/Missing Router':'OWN ROUTER .',
+      'Not Willing to Give':'OWN ROUTER .'
+    };
+    if(logs.length === 0){
+      rows.push([a.accNo,a.name,a.mobile,a.address||'',a.srNumber||'',a.area||'','Coimbatore',USER,'','',today]);
+    } else {
+      logs.forEach(function(log){
+        const subVoc = outcomeMap[log.outcome] || (log.outcome||'').toUpperCase();
+        const voc    = log.apptDate || log.remark || '';
+        const dt     = log.timestamp ? log.timestamp.split(' ')[0] : today;
+        rows.push([a.accNo,a.name,a.mobile,a.address||'',a.srNumber||'',a.area||'','Coimbatore',USER,subVoc,voc,dt]);
+      });
+    }
+  });
+  return rows;
+}
+
+function downloadExcel(){
+  if(!myAccounts.length){ showToast('No accounts to export!','red'); return; }
+  const rows = getReportRows();
+  const wsData = [['Account No.','Name','Mobile No.','Address 1','SR Number','Area','Location','Name','Sub VOC','VOC','Date']];
+  rows.forEach(function(r){ wsData.push(r); });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{wch:16},{wch:22},{wch:14},{wch:45},{wch:20},{wch:16},{wch:14},{wch:12},{wch:24},{wch:20},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws, USER+'_Report');
+  const today = new Date().toLocaleDateString('en-GB').replace(/\//g,'-');
+  XLSX.writeFile(wb, USER+'_Calling_Report_'+today+'.xlsx');
+  showToast('Report downloaded!','green');
+}
+
+function shareWhatsApp(){
+  if(!myAccounts.length){ showToast('No accounts!','red'); return; }
+  const today = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  const rows  = getReportRows().filter(function(r){ return r[8]; });
+  const counts = {};
+  rows.forEach(function(r){ counts[r[8]] = (counts[r[8]]||0)+1; });
+  const fixed = myAccounts.filter(function(a){
+    return (a.tcOutcome||'').toLowerCase().includes('appointment')||(a.tcOutcome||'').toLowerCase().includes('fixed');
+  });
+  const emojiMap = {
+    'APPOINTMENT FIXED':'✅','RNR':'📵','SWITCH OFF':'📴','CALL BACK':'🔄',
+    'ALREADY COLLECTED':'✅','OWN ROUTER .':'📦','INCORRECT NUMBER':'❌',
+    'REFUND FIRST':'💰','RECONNECT':'🔁','SHIFTING':'📍',
+    'OUT OF STATION':'✈️','INCOMING CALL NOT AVAILABLE':'🚫'
+  };
+  var msg = '📊 *VOA Calling Report*\n';
+  msg += '👤 *'+USER+'*\n';
+  msg += '📅 *'+today+'*\n';
+  msg += '─────────────────\n';
+  msg += '📞 Total Assigned: *'+myAccounts.length+'*\n';
+  msg += '✅ Appointments Fixed: *'+fixed.length+'*\n';
+  msg += '📋 Calls Logged: *'+rows.length+'*\n';
+  msg += '─────────────────\n';
+  msg += '*Outcome Breakdown:*\n';
+  Object.entries(counts).sort(function(a,b){return b[1]-a[1];}).forEach(function(entry){
+    var emoji = emojiMap[entry[0]] || '📋';
+    msg += emoji+' '+entry[0]+': *'+entry[1]+'*\n';
+  });
+  msg += '─────────────────\n';
+  msg += '_VOA Recovery System_';
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 
 function showToast(msg,type){
