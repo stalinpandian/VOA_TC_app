@@ -331,13 +331,27 @@ const TELECALLERS = [
 const EXECUTIVES = ['Suresh','Santhosh','Nandha','Mano','Ganesh','Jaya','Gautham'];
 
 const TC_OUTCOMES = [
-  {val:'Appointment Fixed', label:'✅ Appointment Fixed'},
-  {val:'Call Back Later',   label:'🔄 Call Back Later'},
-  {val:'Not Reachable',     label:'📵 Not Reachable'},
-  {val:'Wrong Number',      label:'❌ Wrong Number'},
-  {val:'Already Collected', label:'✅ Already Collected'},
-  {val:'Disconnected',      label:'🔇 Disconnected'},
-  {val:'Refused',           label:'🚫 Refused to Return'},
+  // Appointment outcomes
+  {val:'Appointment Fixed',              label:'✅ Appointment Fixed',              showDate:true},
+  {val:'Future Appointment',             label:'📅 Future Appointment',             showDate:true},
+  {val:'Rescheduled Pending Appointment',label:'🔄 Rescheduled Pending Appointment',showDate:true},
+  // Issue outcomes
+  {val:'Refund Issue',                   label:'💰 Refund Issue',                   showDate:false},
+  {val:'Mail Confirmation',              label:'📧 Mail Confirmation',              showDate:false},
+  {val:'Reconnection',                   label:'🔁 Reconnection',                   showDate:false},
+  {val:'Line Activated',                 label:'📶 Line Activated',                 showDate:false},
+  {val:'Shifted',                        label:'📍 Shifted',                        showDate:false},
+  // Call outcomes
+  {val:'Call Back',                      label:'🔄 Call Back',                      showDate:false},
+  {val:'RNR/Busy',                       label:'📵 RNR / Busy',                     showDate:false},
+  {val:'Switch Off',                     label:'📴 Switch Off',                     showDate:false},
+  {val:'Incoming Calls Barred',          label:'🚫 Incoming Calls Barred',          showDate:false},
+  {val:'Out of Station',                 label:'✈️ Out of Station',                 showDate:false},
+  // Non recoverable
+  {val:'Wrong Number',                   label:'❌ Wrong Number',                   showDate:false},
+  {val:'Already Collected',              label:'✅ Already Collected',              showDate:false},
+  {val:'Own/Lost/Missing Router',        label:'📦 Own / Lost / Missing Router',    showDate:false},
+  {val:'Not Willing to Give',            label:'🙅 Not Willing to Give',            showDate:false},
 ];
 
 let USER='', myAccounts=[], allAccounts=[], pendingAccounts=[];
@@ -596,12 +610,37 @@ function buildMyCard(a, idx){
       +'<div class="log-title">📞 Log This Call</div>'
       +'<div class="field"><label>Outcome</label>'
       +'<select class="fi" id="out_'+logId+'" onchange="onOutcomeChange(\''+logId+'\')">'
-      +'<option value="">— Select —</option>'
-      +TC_OUTCOMES.map(o=>'<option value="'+o.val+'">'+o.label+'</option>').join('')
+      +'<option value="">— Select Outcome —</option>'
+      +'<optgroup label="📅 Appointment">'
+      +'<option value="Appointment Fixed">✅ Appointment Fixed</option>'
+      +'<option value="Future Appointment">📅 Future Appointment</option>'
+      +'<option value="Rescheduled Pending Appointment">🔄 Rescheduled Pending Appointment</option>'
+      +'</optgroup>'
+      +'<optgroup label="📞 Call Status">'
+      +'<option value="Call Back">🔄 Call Back</option>'
+      +'<option value="RNR/Busy">📵 RNR / Busy</option>'
+      +'<option value="Switch Off">📴 Switch Off</option>'
+      +'<option value="Incoming Calls Barred">🚫 Incoming Calls Barred</option>'
+      +'<option value="Out of Station">✈️ Out of Station</option>'
+      +'</optgroup>'
+      +'<optgroup label="⚠️ Issues">'
+      +'<option value="Refund Issue">💰 Refund Issue</option>'
+      +'<option value="Mail Confirmation">📧 Mail Confirmation</option>'
+      +'<option value="Reconnection">🔁 Reconnection</option>'
+      +'<option value="Line Activated">📶 Line Activated</option>'
+      +'<option value="Shifted">📍 Shifted</option>'
+      +'</optgroup>'
+      +'<optgroup label="❌ Non Recoverable">'
+      +'<option value="Wrong Number">❌ Wrong Number</option>'
+      +'<option value="Already Collected">✅ Already Collected</option>'
+      +'<option value="Own/Lost/Missing Router">📦 Own / Lost / Missing Router</option>'
+      +'<option value="Not Willing to Give">🙅 Not Willing to Give</option>'
+      +'</optgroup>'
       +'</select></div>'
       +'<div class="appt-field" id="appt_'+logId+'">'
-      +'<div class="field"><label>Appointment Date</label>'
-      +'<input type="date" class="fi" id="apptd_'+logId+'"></div></div>'
+      +'<div class="field"><label id="apptlbl_'+logId+'">📅 Appointment Date</label>'
+      +'<input type="date" class="fi" id="apptd_'+logId+'" min="'+new Date().toISOString().split('T')[0]+'">'
+      +'</div></div>'
       +'<div class="field"><label>Remark</label>'
       +'<textarea class="fi" id="rem_'+logId+'" placeholder="Customer said..., call back time, notes..."></textarea></div>'
       +'<button class="log-btn" onclick="logCall(\''+String(a.accNo)+'\',\''+logId+'\')">💾 Save Call Log</button>'
@@ -612,9 +651,32 @@ function buildMyCard(a, idx){
 }
 
 function onOutcomeChange(logId){
-  const val=document.getElementById('out_'+logId)?.value||'';
-  const apptDiv=document.getElementById('appt_'+logId);
-  if(apptDiv) apptDiv.style.display=val==='Appointment Fixed'?'block':'none';
+  const val     = document.getElementById('out_'+logId)?.value||'';
+  const apptDiv = document.getElementById('appt_'+logId);
+  const lbl     = document.getElementById('apptlbl_'+logId);
+  const sel     = document.getElementById('out_'+logId);
+
+  const apptVals   = ['Appointment Fixed','Future Appointment','Rescheduled Pending Appointment'];
+  const nonRecov   = ['Wrong Number','Already Collected','Own/Lost/Missing Router','Not Willing to Give'];
+  const issueVals  = ['Refund Issue','Mail Confirmation','Reconnection','Line Activated','Shifted'];
+
+  const showDate = apptVals.includes(val);
+  if(apptDiv) apptDiv.style.display = showDate ? 'block' : 'none';
+
+  // Update label text
+  if(lbl){
+    if(val==='Appointment Fixed')              lbl.textContent = '📅 Appointment Date';
+    else if(val==='Future Appointment')        lbl.textContent = '📅 Future Date (Customer Requested)';
+    else if(val==='Rescheduled Pending Appointment') lbl.textContent = '📅 Rescheduled Date';
+  }
+
+  // Color the border
+  if(sel){
+    if(apptVals.includes(val))    sel.style.borderColor='var(--green)';
+    else if(nonRecov.includes(val)) sel.style.borderColor='var(--red)';
+    else if(issueVals.includes(val)) sel.style.borderColor='var(--orange)';
+    else                            sel.style.borderColor='var(--blue)';
+  }
 }
 
 function toggleHist(histId){
@@ -628,7 +690,8 @@ async function logCall(accNo, logId){
   const apptDate=document.getElementById('apptd_'+logId)?.value||'';
   const remark=document.getElementById('rem_'+logId)?.value.trim()||'';
   if(!outcome){ showToast('Select outcome!','red'); return; }
-  if(outcome==='Appointment Fixed'&&!apptDate){ showToast('Select appointment date!','red'); return; }
+  const apptVals = ['Appointment Fixed','Future Appointment','Rescheduled Pending Appointment'];
+  if(apptVals.includes(outcome) && !apptDate){ showToast('Select appointment date!','red'); return; }
 
   const ts=nowStamp();
   const attemptNo=(callLogs[accNo]||[]).length+1;
